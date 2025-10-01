@@ -1,0 +1,8 @@
+myhostname = monitor.mediaschool.local
+myorigin = /etc/mailname
+mydestination = 
+relayhost = 
+inet_interfaces = loopback-only
+inet_protocols = all
+smtpd_use_tls = no
+smtp_tls_security_level = may
