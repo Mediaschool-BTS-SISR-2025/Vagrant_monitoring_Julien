@@ -12,4 +12,4 @@ route:
 receivers:
   - name: 'mail-alerts'
     email_configs:
-      - to: 'destinataire@example.com'
+      - to: 'julien.marcucci@mediaschool.me'

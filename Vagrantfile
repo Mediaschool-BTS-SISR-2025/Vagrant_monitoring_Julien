@@ -1,7 +1,7 @@
 Vagrant.configure("2") do |config|
   # VM monitor
   config.vm.define "monitor" do |monitor|
-    monitor.vm.box = "debian/bullseye64"
+    monitor.vm.box = "debian/bookworm64"
     monitor.vm.hostname = "monitor.mediaschool.local"
     monitor.vm.network "private_network", ip: "192.168.56.10"
     
@@ -17,7 +17,7 @@ Vagrant.configure("2") do |config|
 
   # VM node1
   config.vm.define "node1" do |node1|
-    node1.vm.box = "debian/bullseye64"
+    node1.vm.box = "debian/bookworm64"
     node1.vm.hostname = "node1.mediaschool.local"
     node1.vm.network "private_network", ip: "192.168.56.102"
     
@@ -26,3 +26,5 @@ Vagrant.configure("2") do |config|
     node1.vm.provision "shell", path: "scripts/setup_node1.sh"
   end
 end
+
+

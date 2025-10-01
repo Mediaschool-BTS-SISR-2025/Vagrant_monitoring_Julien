@@ -1,7 +1,11 @@
 #!/bin/bash
-set -e
+set -euxo pipefail
 
 echo "[MONITOR] Déploiement de la stack Prometheus + Grafana + Alertmanager + Postfix"
+
+# === PRÉREQUIS ===
+apt update
+apt install -y wget curl gnupg mailutils
 
 # === VARIABLES ===
 PROM_VERSION="2.52.0"
@@ -40,13 +44,14 @@ echo "[MONITOR] Installation de Prometheus"
 useradd --no-create-home --shell /usr/sbin/nologin prometheus || true
 mkdir -p /etc/prometheus /var/lib/prometheus
 
+cd /tmp
 wget https://github.com/prometheus/prometheus/releases/download/v${PROM_VERSION}/prometheus-${PROM_VERSION}.linux-amd64.tar.gz
 tar -xzf prometheus-${PROM_VERSION}.linux-amd64.tar.gz
 cd prometheus-${PROM_VERSION}.linux-amd64
 cp prometheus promtool /usr/local/bin/
 cp -r consoles console_libraries /etc/prometheus/
-cp /vagrant/files/prometheus.yml /etc/prometheus/prometheus.yml
-cp /vagrant/files/alerts.yml /etc/prometheus/alerts.yml
+cp /vagrant/scripts/prometheus.yml /etc/prometheus/prometheus.yml
+cp /vagrant/scripts/alerts.yml /etc/prometheus/alerts.yml
 chown -R prometheus:prometheus /etc/prometheus /var/lib/prometheus
 
 cat <<EOF > /etc/systemd/system/prometheus.service
@@ -70,7 +75,7 @@ systemctl daemon-reload
 systemctl enable --now prometheus
 
 # === 3. Alertmanager ===
-echo "[MONITOR] Installation de Alertmanager"
+echo "[MONITOR] Installation d'Alertmanager"
 useradd --no-create-home --shell /usr/sbin/nologin alertmanager || true
 mkdir -p /etc/alertmanager /var/lib/alertmanager
 
@@ -79,7 +84,7 @@ wget https://github.com/prometheus/alertmanager/releases/download/v${ALERTMANAGE
 tar -xzf alertmanager-${ALERTMANAGER_VERSION}.linux-amd64.tar.gz
 cd alertmanager-${ALERTMANAGER_VERSION}.linux-amd64
 cp alertmanager amtool /usr/local/bin/
-cp /vagrant/files/alertmanager.yml /etc/alertmanager/
+cp /vagrant/scripts/alertmanager.yml /etc/alertmanager/
 chown -R alertmanager:alertmanager /etc/alertmanager /var/lib/alertmanager
 
 cat <<EOF > /etc/systemd/system/alertmanager.service
@@ -104,22 +109,23 @@ systemctl enable --now alertmanager
 echo "[MONITOR] Installation de Grafana"
 cd /tmp
 wget ${GRAFANA_DEB_URL}
-dpkg -i grafana_10.4.2_amd64.deb
-systemctl enable --now grafana-server
+dpkg -i grafana_10.4.2_amd64.deb || true
+apt install -f -y
 mkdir -p /etc/grafana/provisioning/datasources
-cp /vagrant/files/datasource.yml /etc/grafana/provisioning/datasources/
-
-
-# Ajouter Prometheus comme source de données via provisioning (ou manuellement dans UI)
+cp /vagrant/scripts/datasource.yml /etc/grafana/provisioning/datasources/
+systemctl enable --now grafana-server
 
 # === 5. Postfix (Internet Site, envoi uniquement) ===
 echo "[MONITOR] Installation de Postfix (envoi uniquement)"
 debconf-set-selections <<< "postfix postfix/mailname string monitor.mediaschool.local"
 debconf-set-selections <<< "postfix postfix/main_mailer_type string 'Internet Site'"
-apt install -y postfix mailutils
+apt install -y postfix
 
 # Remplacer le fichier main.cf par celui fourni
-cp /vagrant/files/postfix_main.cf /etc/postfix/main.cf
+cp /vagrant/scripts/postfix_main.cf /etc/postfix/main.cf
 systemctl restart postfix
 
-echo "[MONITOR] Stack complète installée et configurée"
+# === Nettoyage (optionnel) ===
+rm -rf /tmp/*.tar.gz /tmp/*linux-amd64 /tmp/grafana_*.deb
+
+echo "[MONITOR] Stack complète installée et configurée avec succès ✅"
